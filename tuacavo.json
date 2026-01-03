@@ -188,7 +188,8 @@
                         "Auer": "쓰다",
                         "Auli": "듣다",
                         "Aulo": "소리 지르다",
-                        "Auls": "속삭이다"
+                        "Auls": "속삭이다",
+                        "Aulc": "대화하다"
                     }
                 },
                 "Aa": "조작 및 제어 (Manipulation)"
@@ -298,7 +299,7 @@
     },
     "Examples": {
         "{ImAegrun} @Ym": "나는 너에게 가는 중이다.",
-        "{ImAegend @Eceaf}~ a'{ImAemend @Ym}, Tn, Ym,ImAusi": "나는 카페에 도착해서 너를 만났고, 지금 너에게 말하고 있다."
+        "{ImAegend @Eceaf}~ a'{ImAemend @Ym}, Tn, ImAulc @Ym": "나는 카페에 도착해서 너를 만났고, 지금 너에게 말하고 있다."
     },
     "GlobalSettings": {
         "meaning": "전체적 설정. 언어의 규칙 정의.",

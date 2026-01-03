@@ -36,14 +36,14 @@
         "example": "OmAa ->  씀애/누군가가 조작한다."
     },
     "Logic_Gates": {
-        "-~ a'- ": {
+        "a'- ": {
             "meaning":"인과관계의 흐름 (A 때문에 B가 됨). / >",
-            "example": "{ImAu} @Y eth {Lai~ a'Zaa}"
+            "example": "{ImAu} @Y eth {Lai a'Zaa}"
         },
         " aya ": "상호 영향 (A와 B가 서로 주고받음) / <>",
-        "-~ sa'- ": {
+        "sa'- ": {
             "meaning": "지연된 인과 (A가 시간이 흐른 뒤 B를 유발함) / ~>",
-            "example": "{OmAeSu !~ sa'ImRaf}~ sa'[AeCu] eth F"
+            "example": "{OmAeSu ! sa'ImRaf} sa'[AeCu] eth F"
         },
         " | ": "a 혹은 b 중 하나. 예시: A|B. / A so B.에이 소 비",
         " en ": "동시 발생 (A와 B가 동시에 일어남). / =",
@@ -299,7 +299,7 @@
     },
     "Examples": {
         "{ImAegrun} @Ym": "나는 너에게 가는 중이다.",
-        "{ImAegend @Eceaf}~ a'{ImAemend @Ym}, Tn, ImAulc @Ym": "나는 카페에 도착해서 너를 만났고, 지금 너에게 말하고 있다."
+        "{ImAegend @Eceaf} a'{ImAemend @Ym}, Tn, ImAulc @Ym": "나는 카페에 도착해서 너를 만났고, 지금 너에게 말하고 있다."
     },
     "GlobalSettings": {
         "meaning": "전체적 설정. 언어의 규칙 정의.",

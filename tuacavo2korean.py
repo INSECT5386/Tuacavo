@@ -104,7 +104,7 @@ class LangTranslator(Transformer):
                 # 7. 시간 및 슬롯 (T-S Series)
                 "Z": "현재 상황", "T": "시간", "K": "원인", "F": "결과/작용", "N": "가치 판단",
                 "Tp": "과거", "Tf": "미래", "Tn": "현재", "Tef": "진행형",
-                "Pinrdy": "대기-", "Pinrun": "실행 중-", "Pinend": "종료", "Pinhold": "중단-",
+                "rdy": "-대기", "run": "-를 하고있다", "end": "-를 했다.", "hold": "-중단",
 
                 # 8. 성격 및 수치 속성 (Certainty & Human)
                 "ic": "확정", "ec": "가변", "no": "안 함/아님", "Ju": "반복", "R": " 은(는) ",
@@ -226,7 +226,7 @@ parser = Lark(my_grammar, start='start', parser='earley')
 translator = LangTranslator()
 
 test_cases = [
-    "{Im(Pinrun(Aeg))} @Ym"
+    "{ImAegend @Eceaf}~ a'{ImAemend @Ym}, Tn, Ym,ImAusi"
 ]
 
 print("## 복합 태그 보정 번역 결과 ##\n")

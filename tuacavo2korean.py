@@ -48,6 +48,25 @@ my_grammar = r"""
     %ignore WS
 """
 
+def Josa(text, josa_type):
+    """
+    text: 대상 단어 (예: '대학교', '판단')
+    josa_type: '을/를', '이/가', '은/는' 중 선택
+    """
+    if not text: return text
+    # 마지막 글자의 유니코드 확인 (받침 유무 판단)
+    last_char = text.strip()[-1]
+    if not ('가' <= last_char <= '힣'): return text + josa_type.split('/')[1]
+    
+    has_jongsung = (ord(last_char) - ord('가')) % 28 > 0
+    if josa_type == '을/를':
+        return text + ('을' if has_jongsung else '를')
+    elif josa_type == '이/가':
+        return text + ('이' if has_jongsung else '가')
+    elif josa_type == '은/는':
+        return text + ('은' if has_jongsung else '는')
+    return text
+
 class LangTranslator(Transformer):
     def __init__(self):
 
@@ -73,7 +92,7 @@ class LangTranslator(Transformer):
                 "#Burnout": "번아웃", "#Flow": "몰입",
 
                 # 5. 행동 및 작용 (A Series)
-                "Aca": "행동", "Acapo": "물리적 행동을 ", "Acavo": "언어적 발화를 ", "Acamo": "조작을 ",
+                "Aca": "행동", "Ae": "물리적 행동을 ", "Au": "언어적 행동을 ", "Aa": "조작을 ", "Aeg": "가다", "Aeu": "걷다", "Aefo": "고치다", "Aef": "날다", "Aep": "놀다", "Aeup": "누르다", "Aec": "닫다", "Aes": "달리다", "Ael": "당기다", "Aet": "던지다", "Aek": "돌보다", "Aeir": "돕다", "Aect": "들다", "Aegr": "따라가다", "Aetir": "따라하다", "Aetu": "액체를 따르다", "Aelu": "떨어지다", "Aei": "뛰다", "Aeal": "마시다", "Aem": "만나다", "Aema": "만들다", "Aetou": "만지다", "Aer": "먹다", "Aelr": "밀다", "Aeze":"받다", "Aelo": "보다", "Aebo": "부수다", "Aeop": "서다", "Aeso": "숨다", "Aelit": "쉬다", "Aetur": "심다", "Aeur": "앉다", "Aeun": "없다", "Aein": "있다", "Aecr": "열다", "Aeol": "입다", "Aesl": "자다", "Aekir": "자라다", "Aeku": "자르다", "Aeca": "잡다", "Aeki": "주다", "Ausi": "말하다", "Aues": "읽다", "Auer": "쓰다", "Auli": "듣다", "Aulo": "소리 지르다", "Auls": "속삭이다",
                 "Coa": "협력/협동", "Ata": "조언/지도", "Ta": "신뢰/유대", "Exa": "교환/거래",
                 "Ka": "충돌/오류", "Pa": "규칙/계약", "Val": "가치", "Has": "소유/연결",
 
@@ -85,7 +104,7 @@ class LangTranslator(Transformer):
                 # 7. 시간 및 슬롯 (T-S Series)
                 "Z": "현재 상황", "T": "시간", "K": "원인", "F": "결과/작용", "N": "가치 판단",
                 "Tp": "과거", "Tf": "미래", "Tn": "현재", "Tef": "진행형",
-                "Pinrdy": "대기", "Pinrun": "실행 중", "Pinend": "종료", "Pinhold": "중단",
+                "Pinrdy": "대기-", "Pinrun": "실행 중-", "Pinend": "종료", "Pinhold": "중단-",
 
                 # 8. 성격 및 수치 속성 (Certainty & Human)
                 "ic": "확정", "ec": "가변", "no": "안 함/아님", "Ju": "반복", "R": " 은(는) ",
@@ -97,43 +116,70 @@ class LangTranslator(Transformer):
             }
 
     def _recursive_join(self, item):
-        if item is None: return ""
-        if isinstance(item, list): return "".join([self._recursive_join(i) for i in item])
-        if isinstance(item, Tree): return "".join([self._recursive_join(child) for child in item.children])
-        if isinstance(item, Token):
-            t = str(item)
-            if t in ["@", "eth"]: return ""
-            if t == "!": return " [경고]"
-            if t.startswith('T') and t[1:].isdigit() and len(t) >= 5: return f"{t[1:3]}시 {t[3:5]}분 "
+            if item is None: return ""
+            if isinstance(item, list): return "".join([self._recursive_join(i) for i in item])
+            if isinstance(item, Tree): return "".join([self._recursive_join(child) for child in item.children])
             
-            # --- 복합 태그 분리 로직 추가 (예: ImAcamo -> 내(화자)가 조작을) ---
-            for id_tag in ["Im", "Ym", "Om"]:
-                if t.startswith(id_tag) and len(t) > len(id_tag):
-                    remain = t[len(id_tag):]
-                    return self.dict_map.get(id_tag, id_tag) + self.dict_map.get(remain, remain)
+            if isinstance(item, Token):
+                t = str(item).strip()
+                if t in ["@", "eth"]: return ""
+                if t == "!": return " [경고]"
 
-            # 확정/가변 접미사 처리
-            for suffix in ["ic", "ec"]:
-                if t.endswith(suffix) and t[:-2] in self.dict_map:
-                    return f"{self.dict_map[t[:-2]]}({self.dict_map[suffix]})"
-            
-            return self.dict_map.get(t, t)
-        return str(item)
+                # 1. 시간 태그 처리 (T1800 등)
+                if t.startswith('T') and t[1:].isdigit() and len(t) >= 5:
+                    return f"{t[1:3]}시 {t[3:5]}분 "
+                # 단독 T 처리 (뒤에 숫자가 붙을 예정인 경우)
+                if t == "T": return "시간"
 
-    # 나머지 메소드(tag_content, vector_suffix 등)는 가독성 보정된 상태 유지
+                # 2. 복합 태그 분해 (재귀적 심층 분해)
+                # 사전의 키를 긴 순서대로 검사하여 부분 일치를 찾음
+                for tag_key in sorted(self.dict_map.keys(), key=len, reverse=True):
+                    if t.startswith(tag_key):
+                        prefix_val = self.dict_map[tag_key]
+                        remain = t[len(tag_key):]
+                        if not remain:
+                            return prefix_val
+                        # 남은 부분(Mu 등)이 있으면 다시 재귀적으로 번역해서 합침
+                        return prefix_val + self._recursive_join(Token('INNER', remain))
+
+                # 3. 확정/가변 접미사 처리
+                for suffix in ["ic", "ec"]:
+                    if t.endswith(suffix) and t[:-2] in self.dict_map:
+                        return f"{self.dict_map[t[:-2]]}({self.dict_map[suffix]})"
+                
+                return self.dict_map.get(t, t)
+            return str(item)
+
     def tag_content(self, items):
-        res = self._recursive_join(items[0])
+        # 1. 모든 아이템을 먼저 번역함
+        translated_items = [self._recursive_join(i) for i in items]
+        
+        # 2. 만약 첫 번째 아이템이 "시간"이라면 뒤의 숫자를 가로채서 합침
+        if translated_items[0] == "시간" and len(items) > 1:
+            num_part = str(items[1])
+            if num_part.isdigit() and len(num_part) >= 4:
+                res = f"{num_part[:2]}시 {num_part[2:4]}분 "
+                # 시간으로 합쳤으므로 나머지 요소(vector_suffix 등)만 붙임
+                for i in items[2:]:
+                    res += self._recursive_join(i)
+                return res
+
+        # 3. 일반적인 태그 처리 (숫자가 속성으로 해석되는 경우)
+        res = translated_items[0]
         num_str, vec_str, desc_str = "", "", ""
-        for i in items[1:]:
+        
+        for i_idx, i in enumerate(items[1:], 1):
             if isinstance(i, Token) and i.type == "NUMBER":
                 n = str(i)
+                # 속성 숫자로 해석 (d/v)
                 d = {"1":"10분미만", "2":"30분미만", "3":"1시간미만", "4":"3시간미만", "5":"3시간이상"}.get(n[0], "미정")
                 v = {"1":"안정", "2":"약간불안", "3":"불안정", "4":"빠름", "5":"매우빠름"}.get(n[1] if len(n)>1 else "1", "안정")
                 num_str = f"({d}/{v})"
             elif isinstance(i, Tree) and i.data == "vector_suffix":
                 vec_str = self.vector_suffix(i.children)
             else:
-                desc_str += self._recursive_join(i)
+                desc_str += translated_items[i_idx]
+                
         return f"{res}{num_str}{vec_str}{desc_str}"
 
     def vector_suffix(self, items):
@@ -151,23 +197,36 @@ class LangTranslator(Transformer):
     def action_group(self, items): return f"[{self._recursive_join(items)}]"
     def inner_group(self, items): return f"({self._recursive_join(items)})"
     def atom(self, items): return self._recursive_join(items)
-    def target(self, items): return f" -> 대상: {self._recursive_join(items)}"
+
+    def target(self, items):
+            # "대상: 대학교" -> "대학교(으)로 향함" 또는 "대학교를 대상으로 함"
+            val = self._recursive_join(items)
+            return f" {Josa(val, '을/를')} 대상으로 "
+
     def eth_property(self, items): return f" (성격: {self._recursive_join(items)})"
     def causal_expr(self, items):
-        l, r = self._recursive_join(items[0]), self._recursive_join(items[2])
-        return f"{l} => {r}" if "a'" in str(items[1]) else f"{l} ~> {r}"
+            l, r = self._recursive_join(items[0]), self._recursive_join(items[2])
+            # "A => B" -> "A하면 B하게 된다"
+            op = "a'" in str(items[1])
+            symbol = "하게 되며, 이로 인해 " if op else "하고 나서 "
+            return f"{l}{symbol}{r}"
     def sequence_expr(self, items):
         l, r = self._recursive_join(items[0]), self._recursive_join(items[2])
         return f"{l} + {r}" if str(items[1]) == "en" else f"{l}, {r}"
     def expressions(self, items): return "\n".join([self._recursive_join(i).strip() for i in items if i])
-    def start(self, items): return self._recursive_join(items)
+    def start(self, items):
+            res = self._recursive_join(items)
+            # 마지막에 마침표를 찍어 문장 완성
+            if not res.endswith(('.', '?', '!')):
+                res += "함."
+            return res
 
 # 실행 및 테스트
 parser = Lark(my_grammar, start='start', parser='earley')
 translator = LangTranslator()
 
 test_cases = [
-    "{ImAcapo(Pinrun(move)) @Uecas}"
+    "{Im(Pinrun(Aeg))} @Ym"
 ]
 
 print("## 복합 태그 보정 번역 결과 ##\n")
